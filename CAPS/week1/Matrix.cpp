@@ -103,6 +103,6 @@ int main()
     Matrix p = m * n;
     //m.print();
     //n.print();
-    p.print();
+    //p.print();
     return 0;
 }
