@@ -23,28 +23,36 @@ struct Matrix
         for (int i = 0; i < capacity; i++)
             table[i] = other.table[i];
     }
-    Matrix operator*(const Matrix& rhs)
+    Matrix operator(const Matrix& rhs)
     {
-	assert(_cols == rhs._rows);
-	auto single_cell_calc = [] (const int current_row,
-				      const int current_col,
-				      const int max,
-				      const Matrix& rhs,
-				      const Matrix& lhs,
-				      Matrix& result){
-		for(int k = 0; k < max; k++){
-            result(current_row,current_col) += (rhs)(current_row, k) + (lhs)(k, current_col);
-        }};
+    assert(_cols == rhs._rows);
     std::vector<std::thread> threads;
-	Matrix m(_rows, rhs._cols);
-	for(int i = 0; i < _rows; i++){
-	    for(int j = 0; j < rhs._cols; j++){
-		for(int k = 0; k < _cols; k++){
-		    m(i,j) += (*this)(i,k) * rhs(k,j);
-		}
-	    }
-	}
-	return m;
+    Matrix m(_rows, rhs._cols);
+    for(int row = 0; row < _rows; row++){
+        for(int col = 0; col < rhs._cols; col++){
+            threads.emplace_back([] (
+                const int current_row,
+                const int current_col,
+                const int max,
+                const Matrix& rhs,
+                const Matrix& lhs,
+                Matrix& result){
+        for(int k = 0; k < max; k++){
+            result(current_row,current_col) += (rhs)(current_row, k) + (lhs)(k, current_col);
+        }}, std::ref(row), std::ref(col), std::ref(_cols), std::ref(this), std::ref(rhs), std::ref(m));
+        }
+    }
+    for(auto & thread : threads){
+        thread.join();
+    }
+    for(int i = 0; i < _rows; i++){
+        for(int j = 0; j < rhs._cols; j++){
+        for(int k = 0; k < _cols; k++){
+            m(i,j) += (*this)(i,k) * rhs(k,j);
+        }
+        }
+    }
+    return m;
     }
     Matrix& operator=(const Matrix& rhs)
     {
