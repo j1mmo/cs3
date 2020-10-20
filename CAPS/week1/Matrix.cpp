@@ -2,9 +2,8 @@
 #include <iostream>
 #include <cstring>
 #include <assert.h>
-#include <thread>
 #include <vector>
-
+#include <thread>
 struct Matrix
 {
     Matrix(const int rows, const int cols) : table(nullptr), _rows(rows), _cols(cols)
@@ -23,36 +22,33 @@ struct Matrix
         for (int i = 0; i < capacity; i++)
             table[i] = other.table[i];
     }
-    Matrix operator(const Matrix& rhs)
+    Matrix operator*(const Matrix& rhs)
     {
-    assert(_cols == rhs._rows);
-    std::vector<std::thread> threads;
-    Matrix m(_rows, rhs._cols);
-    for(int row = 0; row < _rows; row++){
-        for(int col = 0; col < rhs._cols; col++){
-            threads.emplace_back([] (
-                const int current_row,
-                const int current_col,
-                const int max,
-                const Matrix& rhs,
-                const Matrix& lhs,
-                Matrix& result){
-        for(int k = 0; k < max; k++){
-            result(current_row,current_col) += (rhs)(current_row, k) + (lhs)(k, current_col);
-        }}, std::ref(row), std::ref(col), std::ref(_cols), std::ref(this), std::ref(rhs), std::ref(m));
-        }
-    }
-    for(auto & thread : threads){
-        thread.join();
-    }
-    for(int i = 0; i < _rows; i++){
-        for(int j = 0; j < rhs._cols; j++){
-        for(int k = 0; k < _cols; k++){
-            m(i,j) += (*this)(i,k) * rhs(k,j);
-        }
-        }
-    }
-    return m;
+	assert(_cols == rhs._rows);
+	std::vector<std::thread> threads;
+	Matrix m(_rows, rhs._cols);
+	for(int row = 0; row < _rows; row++){
+	    for(int col = 0; col < rhs._cols; col++){
+		threads.emplace_back([] (const int current_row,
+					 const int current_col,
+					 const int max,
+					 const Matrix& rhs,
+					 const Matrix& lhs,
+					 Matrix& result){
+	  for(int k = 0; k < max; k++){
+	      result(current_row,current_col) += (rhs)(current_row, k) + (lhs)(k, current_col);
+	  }}, std::ref(row),
+	      std::ref(col),
+	      std::ref(_cols),
+	      std::ref(*this),
+	      std::ref(rhs),
+	      std::ref(m));
+	    }
+	}
+	for(auto & thread : threads){
+	    thread.join();
+	}
+	return m;
     }
     Matrix& operator=(const Matrix& rhs)
     {
@@ -89,6 +85,7 @@ struct Matrix
         table = new float[_rows * _cols];
     }
 };
+
 std::ostream& operator<<(std::ostream& os, const Matrix& m)
 {
     for(int row = 0; row < m._rows; row++){
@@ -100,6 +97,7 @@ std::ostream& operator<<(std::ostream& os, const Matrix& m)
     os << "\n";
     return os; 
 }
+
 int main()
 {
     Matrix m(4,4);
